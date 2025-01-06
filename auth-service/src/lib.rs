@@ -2,6 +2,9 @@ use axum::{http::StatusCode, response::{Html, IntoResponse}, routing::{get, post
 use tower_http::services::ServeDir;
 use std::error::Error;
 
+pub mod routes;
+use routes::*;
+
 pub struct Application {
     server: Serve<Router, Router>,
     // address is exposed as a public field
@@ -33,25 +36,5 @@ impl Application {
         println!("listening on {}", &self.address);
         self.server.await
     }
-}
-
-async fn signup() -> impl IntoResponse {
-    StatusCode::OK.into_response()
-}
-
-async fn login() -> impl IntoResponse {
-    StatusCode::OK.into_response()
-}
-
-async fn verify_2fa() -> impl IntoResponse {
-    StatusCode::OK.into_response()
-}
-
-async fn logout() -> impl IntoResponse {
-    StatusCode::OK.into_response()
-}
-
-async fn verify_token() -> impl IntoResponse {
-    StatusCode::OK.into_response()
 }
 
