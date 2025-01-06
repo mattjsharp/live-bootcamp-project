@@ -13,47 +13,47 @@ async fn should_return_422_if_malformed_input() {
         }),
         serde_json::json!({
             "password": "password123",
-            "             email": "johndoe@yahoo.com",
+            "             email": &random_email,
             "require2FA": 15
         }),
         serde_json::json!({
             "passwoord": "password123",
-            "email": "johndoe@yahoo.com",
+            "email": &random_email,
             "requires2FA": true,
         }),
         serde_json::json!({
             "password": "password123",
-            "email    ": "johndoe@yahoo.com",
-            "emai": "johndoe@yahoo.com",
+            "email    ": &random_email,
+            "emai": &random_email,
             "requires2FA": true
         }),
         serde_json::json!({}),
         serde_json::json!({
             "password      ": 8,
-            "email": "johndoe@yahoo.com",
+            "email": &random_email,
             "requires2FA": true
         }),
         serde_json::json!({
-            "email": "johndoe@yahoo.com",
+            "email": &random_email,
             "requires2FA ": false
         }),
         serde_json::json!({
             "password": "password123",
-            "emaiil": "johndoe@yahoo.com",
+            "emaiil": &random_email,
             "requires_2FA": true
         }),
         serde_json::json!({
             "passworde": "password123",
             "password": "password123",
-            "     email": "johndoe@yahoo.com",
+            "     email": &random_email,
             "password": "password23",
             "requires2FA": true
         }),
         serde_json::json!({
-            "email": "johndoe@yahoo.com",
-            "email": "johndoe@yahoo.com",
-            "email": "johndoe@yahoo.com",
-            "email": "johndoe@yahoo.com",
+            "email": &random_email,
+            "email": &random_email,
+            "email": &random_email,
+            "email": &random_email,
         }),
     ];
 
