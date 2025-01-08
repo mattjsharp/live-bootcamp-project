@@ -5,7 +5,7 @@ services:
     image: mattjsharp/app-service
     restart: "always"
     environment:
-      AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-auth-service} # Use service name for communication
+      AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use service name for communication
     ports:
       - "8000:8000"
     depends_on:
@@ -22,40 +22,16 @@ services:
     networks:
       - app-network
 
-  webserver:
+  reverse-proxy:
     image: nginx:mainline-alpine
     ports:
       - "80:80"
     volumes:
-      - web-root:/var/www/html
-      - ./nginx-conf:/etc/nginx/conf.d
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - app-service
     networks:
       - app-network
-
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
-    volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
-      - web-root:/var/www/html
-    depends_on:
-      - webserver
-    command: certonly --webroot --webroot-path=/var/www/html --email matthewsharp@live.com --agree-tos --no-eff-email -d mattjsharp.com -d www.mattjsharp.com
-
-volumes:
-  certbot-etc:
-  certbot-var:
-  web-root:
-    driver: local
-    driver_opts:
-      type: none
-      device: /usr/local/bin/app-service/templates
-      o: bind
 
 networks:
   app-network:
