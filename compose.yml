@@ -9,8 +9,51 @@ services:
     depends_on: # only run app-service after auth-service has started
       auth-service:
         condition: service_started
+    networks:
+      - app-network
   auth-service:
     image: mattjsharp/auth-service
     restart: "always" # automatically restart container when server crashes
     ports:
       - "3000:3000" # expose port 3000 so that applications outside the container can connect to it 
+    networks:
+      - app-network
+  webserver:
+    image: nginx:mainline-alpine
+    container_name: webserver
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - web-root:/var/www/html
+      - ./nginx-conf:/etc/nginx/conf.d
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+    depends_on:
+      - auth-service
+      - app-service
+    networks:
+      - app-network
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - webserver
+    command: certonly --webroot --webroot-path=/var/www/html --email matthewsharp@live.com --agree-tos --no-eff-email --staging -d mattjsharp.com  -d www.mattjsharp.com
+volumes:
+  certbot-etc:
+  certbot-var:
+  web-root:
+    driver: local
+    driver_opts:
+      type: none
+      #device: /home/sammy/node_project/views/
+      o: bind
+
+networks:
+  app-network:
+    driver: bridge
