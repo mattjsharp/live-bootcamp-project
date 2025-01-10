@@ -26,10 +26,12 @@ services:
     image: nginx:mainline-alpine
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certs:/etc/letsencrypt  # Add Let's Encrypt certificates
-      - ./certs-data:/var/lib/letsencrypt  # Certbot data for renewals
+      - ./certs:/etc/letsencrypt
+      - ./certs-data:/var/lib/letsencrypt
+      - /tmp/acme-challenge:/var/www/html  # Temporary directory for Let's Encrypt challenges
     depends_on:
       - app-service
     networks:
@@ -40,6 +42,7 @@ services:
     volumes:
       - ./certs:/etc/letsencrypt
       - ./certs-data:/var/lib/letsencrypt
+      - /tmp/acme-challenge:/var/www/html  # Shared directory for challenges
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 6h & wait $!; certbot renew; done;'"
     networks:
       - app-network
