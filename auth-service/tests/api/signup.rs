@@ -1,4 +1,4 @@
-use auth_service::routes::SignupResponse;
+use auth_service::{routes::SignupResponse, ErrorResponse};
 
 use crate::helpers::{get_random_email, TestApp};
 
@@ -71,18 +71,99 @@ async fn should_return_422_if_malformed_input() {
 }
 
 #[tokio::test]
+async fn should_return_400_if_invalid_input() {
+    // The signup route returns a 400 HTTP status code if an invalid input is sent.
+    // The input is considered invalid if:
+    // - The email is empty or does not contain '@'
+    // - The password is less than 8 characters
+    let app = TestApp::new().await;
+
+    let input = [
+        serde_json::json!({
+            "email": "joebidenwhitehouse.gov",
+            "password": "password123",
+            "requires2FA": true
+        }),
+        serde_json::json!({
+            "email": "",
+            "password": "password123",
+            "requires2FA": true
+        }),
+        serde_json::json!({
+            "email": "joebiden@whitehouse.gov",
+            "password": "passw",
+            "requires2FA": true
+        }),
+        serde_json::json!({
+            "email": "",
+            "password": "",
+            "requires2FA": true
+        }),
+        serde_json::json!({
+            "email": "joebidenwhitehouse.gov",
+            "password": "passwo",
+            "requires2FA": true
+        }),
+    ];
+
+    // for test_case in input.iter() {
+    //     let response = app.post_signup(test_case).await;
+    //     assert_eq!(
+    //         response.status().as_u16(),
+    //         400,
+    //         "Failed for input: {:?}",
+    //         test_case
+    //     );
+    // }
+
+    for i in input.iter() {
+        let response = app.post_signup(i).await;
+        assert_eq!(response.status().as_u16(), 400, "Failed for input: {:?}", i);
+
+        assert_eq!(
+            response
+                .json::<ErrorResponse>()
+                .await
+                .expect("Could not deserialize response body to ErrorResponse")
+                .error,
+            "Invalid credentials".to_owned()
+        );
+    }
+}
+
+#[tokio::test]
+async fn should_return_409_if_email_already_exists() {
+    let app = TestApp::new().await;
+
+    // Creating the same account with the same email twice
+    app.post_signup(&serde_json::json!({"email": "blanketjackson@neverland.com", "password": "password123", "requires2FA": false})).await;
+    let response = app.post_signup(&serde_json::json!({"email": "blanketjackson@neverland.com", "password": "password123", "requires2FA": false})).await;
+
+    assert_eq!(response.status().as_u16(), 409);
+
+    assert_eq!(
+        response
+            .json::<ErrorResponse>()
+            .await
+            .expect("Could not deserialize response body to ErrorResponse")
+            .error,
+        "User already exists".to_owned()
+    );
+}
+
+
+#[tokio::test]
 async fn should_return_201_if_valid_input() {
     let app = TestApp::new().await;
 
     let response = app.post_signup(&serde_json::json!({"email": "joebiden@whitehouse.gov", "password": "password123", "requires2FA": true})).await;
 
-    assert_eq!(response.status().as_u16(), 201);
+    assert_eq!(response.status().as_u16(), 201, "Returned Status: {:?}", response.status().as_u16());
 
     let expected_response = SignupResponse {
         message: "User created successfully!".to_owned(),
     };
 
-    // Assert that we are getting the correct response body!
     assert_eq!(
         response
             .json::<SignupResponse>()
