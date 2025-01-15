@@ -1,14 +1,6 @@
 use std::collections::HashMap;
 
-use crate::domain::User;
-
-#[derive(Debug, PartialEq)]
-pub enum UserStoreError {
-    UserAlreadyExists,
-    UserNotFound,
-    InvalidCredentials,
-    UnexpectedError,
-}
+use crate::domain::{User, UserStoreError, UserStore};
 
 // stores a `HashMap`` of email `String`s mapped to `User` objects.
 // Derive the `Default` trait for `HashmapUserStore`.
@@ -17,10 +9,11 @@ pub struct HashmapUserStore {
     pub users: HashMap<String, User>
 }
 
-impl HashmapUserStore {
+#[async_trait::async_trait]
+impl UserStore for HashmapUserStore {
     // Return `UserStoreError::UserAlreadyExists` if the user already exists,
     // otherwise insert the user into the hashmap and return `Ok(())`.
-    pub fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
+    async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         if self.users.contains_key(&user.email) {
             return Err(UserStoreError::UserAlreadyExists)
         }
@@ -32,7 +25,7 @@ impl HashmapUserStore {
     // Returns a `Result` type containing either a
     // `User` object or a `UserStoreError`.
     // Return `UserStoreError::UserNotFound` if the user can not be found.
-    pub fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
+    async fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
         if let Some(user) = self.users.get(email) {
             return Ok(User::new(user.email.clone(), user.password.clone(), user.requires_2fa))
         }
@@ -45,7 +38,7 @@ impl HashmapUserStore {
     // unit type `()` if the email/password passed in match an existing user, or a `UserStoreError`.
     // Return `UserStoreError::UserNotFound` if the user can not be found.
     // Return `UserStoreError::InvalidCredentials` if the password is incorrect.
-    pub fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError> {
+    async fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError> {
         if let Some(user) = self.users.get(email) {
             if user.password == password {
                 return Ok(())
@@ -54,7 +47,9 @@ impl HashmapUserStore {
         }
         Err(UserStoreError::UserNotFound)
     }
+}
 
+impl HashmapUserStore {
     pub fn new() -> Self {
         Self {
             users: HashMap::new()
@@ -73,7 +68,7 @@ mod tests {
         let mut user_store = HashmapUserStore{users: HashMap::new()};
 
         for user in users {
-            assert_ne!(user_store.add_user(user), Err(UserStoreError::UserAlreadyExists));
+            assert_ne!(user_store.add_user(user).await, Err(UserStoreError::UserAlreadyExists));
         }
     }
 
@@ -85,13 +80,13 @@ mod tests {
 
         // Testing for valid users
         for valid_user in &valid_users {
-            let user = user_store.get_user(&valid_user.email);
+            let user = user_store.get_user(&valid_user.email).await;
             assert_eq!(user.unwrap().email, valid_user.email);
         }
 
         // Testing for users not present
         for invalid_user in &invlaid_users {
-            if let Err(e) = user_store.get_user(&invalid_user) {
+            if let Err(_) = user_store.get_user(&invalid_user).await {
                 assert!(true);
             } else {
                 assert!(false);
@@ -108,7 +103,7 @@ mod tests {
 
         // Testing for users not present
         for invalid_user in &invlaid_users {
-            if let Err(e) = user_store.validate_user(&invalid_user, &invalid_password) {
+            if let Err(_) = user_store.validate_user(&invalid_user, &invalid_password).await {
                 assert!(true);
             } else {
                 assert!(false);
@@ -117,13 +112,13 @@ mod tests {
 
         // Testing for valid users
         for valid_user in &valid_users {
-            let user = user_store.validate_user(&valid_user.email, &valid_user.password);
+            let user = user_store.validate_user(&valid_user.email, &valid_user.password).await;
             assert_eq!(user.unwrap(), ());
         }
 
         // Testing for present users with wrong passwords
         for valid_user in &valid_users {
-            if let Err(e) = user_store.validate_user(&valid_user.email, &invalid_password) {
+            if let Err(_) = user_store.validate_user(&valid_user.email, &invalid_password).await {
                 assert!(true);
             } else {
                 assert!(false);
