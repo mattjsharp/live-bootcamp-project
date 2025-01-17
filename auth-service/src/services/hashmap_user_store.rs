@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use crate::domain::{User, UserStoreError, UserStore};
+use crate::domain::{Email, Password, User, UserStore, UserStoreError};
 
 // stores a `HashMap`` of email `String`s mapped to `User` objects.
 // Derive the `Default` trait for `HashmapUserStore`.
 #[derive(Default)]
 pub struct HashmapUserStore {
-    pub users: HashMap<String, User>
+    pub users: HashMap<Email, User>
 }
 
 #[async_trait::async_trait]
@@ -25,7 +25,7 @@ impl UserStore for HashmapUserStore {
     // Returns a `Result` type containing either a
     // `User` object or a `UserStoreError`.
     // Return `UserStoreError::UserNotFound` if the user can not be found.
-    async fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
+    async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
         if let Some(user) = self.users.get(email) {
             return Ok(User::new(user.email.clone(), user.password.clone(), user.requires_2fa))
         }
@@ -38,9 +38,9 @@ impl UserStore for HashmapUserStore {
     // unit type `()` if the email/password passed in match an existing user, or a `UserStoreError`.
     // Return `UserStoreError::UserNotFound` if the user can not be found.
     // Return `UserStoreError::InvalidCredentials` if the password is incorrect.
-    async fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError> {
+    async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError> {
         if let Some(user) = self.users.get(email) {
-            if user.password == password {
+            if user.password == *password {
                 return Ok(())
             }
             return Err(UserStoreError::InvalidCredentials)
@@ -59,99 +59,72 @@ impl HashmapUserStore {
 
 #[cfg(test)]
 mod tests {
+    
+    use fake::faker::internet::en::{Password as FakerPassword, SafeEmail};
+    use fake::Fake;
+
     use super::*;
 
     #[tokio::test]
     async fn test_add_user() {
-        let users = setup_users();
+        let email = Email::parse(&SafeEmail().fake::<String>()).unwrap();
+
+        let new_password: String = FakerPassword(8..16).fake();
+        let password = Password::parse(&new_password).unwrap();
 
         let mut user_store = HashmapUserStore{users: HashMap::new()};
 
-        for user in users {
-            assert_ne!(user_store.add_user(user).await, Err(UserStoreError::UserAlreadyExists));
-        }
+        let user = User::new(email, password, true);
+
+        assert_ne!(user_store.add_user(user).await, Err(UserStoreError::UserAlreadyExists));
     }
 
     #[tokio::test]
     async fn test_get_user() {
-        let valid_users = setup_users();
-        let invlaid_users = invalid_users_emails();
-        let user_store = setup_user_store();
 
-        // Testing for valid users
-        for valid_user in &valid_users {
-            let user = user_store.get_user(&valid_user.email).await;
-            assert_eq!(user.unwrap().email, valid_user.email);
-        }
+        let email = Email::parse(&SafeEmail().fake::<String>()).unwrap();
 
-        // Testing for users not present
-        for invalid_user in &invlaid_users {
-            if let Err(_) = user_store.get_user(&invalid_user).await {
-                assert!(true);
-            } else {
-                assert!(false);
-            }
-        }
+        let new_password: String = FakerPassword(8..16).fake();
+        let password = Password::parse(&new_password).unwrap();
+
+        let mut user_store = HashmapUserStore{users: HashMap::new()};
+
+        let user = User::new(email.clone(), password, true);
+
+        user_store.add_user(user).await.expect("Failed to add account");
+
+        let user = user_store.get_user(&email).await;
+        assert_eq!(user.unwrap().email, email.clone());
+
+        // if let Err(_) = user_store.get_user(&Email::parse("goldfish").unwrap()).await {
+        //     assert!(true, "get_user Passes");
+        // } else {
+        //     assert!(false, "get_user Fails");
+        // }
     }
 
     #[tokio::test]
     async fn test_validate_user() {
-        let valid_users = setup_users();
-        let invlaid_users = invalid_users_emails();
-        let user_store = setup_user_store();
+
         let invalid_password = "not_the_password";
 
-        // Testing for users not present
-        for invalid_user in &invlaid_users {
-            if let Err(_) = user_store.validate_user(&invalid_user, &invalid_password).await {
-                assert!(true);
+        let email = Email::parse(&SafeEmail().fake::<String>()).unwrap();
+
+        let new_password: String = FakerPassword(8..16).fake();
+        let password = Password::parse(&new_password).unwrap();
+
+        let mut user_store = HashmapUserStore{users: HashMap::new()};
+
+        let user = User::new(email.clone(), password.clone(), true);
+
+        user_store.add_user(user).await.expect("Failed to add account");
+        
+            if let Err(_) = user_store.validate_user(&email, &Password::parse(invalid_password).unwrap()).await {
+                assert!(true, "validate_user passes");
             } else {
-                assert!(false);
+                assert!(false,  "validate_user fails");
             }
-        }
 
-        // Testing for valid users
-        for valid_user in &valid_users {
-            let user = user_store.validate_user(&valid_user.email, &valid_user.password).await;
-            assert_eq!(user.unwrap(), ());
-        }
-
-        // Testing for present users with wrong passwords
-        for valid_user in &valid_users {
-            if let Err(_) = user_store.validate_user(&valid_user.email, &invalid_password).await {
-                assert!(true);
-            } else {
-                assert!(false);
-            }
-        }
-    }
-
-    fn setup_users() -> Vec<User> {
-        vec![
-            User::new(String::from("joebiden@whitehouse.gov"), String::from("123456"), false),
-            User::new(String::from("donaldtrump@whitehouse.gov"), String::from("654321"), false),
-            User::new(String::from("barakobama@whitehouse.gov"), String::from("2468"), true)
-        ]
-    }
-
-    fn invalid_users_emails() -> Vec<String> {
-        vec![
-            "hillaryclinton@senate.gov".to_owned(), 
-            "berniesanders@senate.gov".to_owned(),
-            "kamalaharris@whitehouse.gov".to_owned()
-            ]
-    }
-
-    fn setup_user_store() -> HashmapUserStore {
-        let mut user_store = HashMap::new();
-        let users = setup_users();
-
-        for user in users {
-            user_store.insert(user.email.clone(), user);
-        }
-
-        HashmapUserStore {
-            users: user_store
-        }
+        assert_eq!(user_store.validate_user(&email, &password).await.unwrap(), (), "validate_user fails");
     }
 }

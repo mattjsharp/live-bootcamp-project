@@ -15,6 +15,7 @@ pub mod routes;
 pub mod services;
 pub mod domain;
 pub mod app_state;
+
 use routes::*;
 
 pub struct Application {
