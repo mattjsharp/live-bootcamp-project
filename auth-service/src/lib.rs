@@ -1,3 +1,4 @@
+use app_state::AppState;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -6,15 +7,14 @@ use axum::{
     Json, Router,
 };
 use domain::AuthAPIError;
-use tower_http::services::ServeDir;
-use std::error::Error;
-use app_state::AppState;
 use serde::{Deserialize, Serialize};
+use std::error::Error;
+use tower_http::services::ServeDir;
 
+pub mod app_state;
+pub mod domain;
 pub mod routes;
 pub mod services;
-pub mod domain;
-pub mod app_state;
 pub mod utils;
 
 use routes::*;
@@ -41,10 +41,7 @@ impl Application {
         let address = listener.local_addr()?.to_string();
         let server = axum::serve(listener, router);
 
-        Ok(Self {
-            server,
-            address
-        })
+        Ok(Self { server, address })
     }
 
     pub async fn run(self) -> Result<(), std::io::Error> {
@@ -65,10 +62,12 @@ impl IntoResponse for AuthAPIError {
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
             AuthAPIError::UnexpectedError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
-            },
-            AuthAPIError::IncorrectCredentails => (StatusCode::UNAUTHORIZED, "Passowrd is incorrect"),
+            }
+            AuthAPIError::IncorrectCredentails => {
+                (StatusCode::UNAUTHORIZED, "Passowrd is incorrect")
+            }
             AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing Token"),
-            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid Token")
+            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid Token"),
         };
         let body = Json(ErrorResponse {
             error: error_message.to_string(),

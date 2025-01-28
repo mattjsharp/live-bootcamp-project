@@ -1,20 +1,22 @@
-
-use std::sync::Arc;
+use auth_service::{
+    app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType},
+    services::{
+        hashmap_two_fa_code_store::HashmapTwoFACodeStore, hashmap_user_store::HashmapUserStore,
+        hashset_banned_token_store::HashsetBannedTokenStore,
+    },
+    utils::constants::test,
+    Application,
+};
 use reqwest::cookie::Jar;
+use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use auth_service::{    app_state::{AppState, BannedTokenStoreType},
-services::{
-    hashmap_user_store::HashmapUserStore, hashset_banned_token_store::HashsetBannedTokenStore,
-},
-utils::constants::test,
-Application,
-};
 
 pub struct TestApp {
     pub address: String,
     pub cookie_jar: Arc<Jar>,
     pub banned_token_store: BannedTokenStoreType,
+    pub two_fa_code_store: TwoFACodeStoreType,
     pub http_client: reqwest::Client,
 }
 
@@ -22,8 +24,13 @@ impl TestApp {
     pub async fn new() -> Self {
         let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
         let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
-        let app_state = AppState::new(user_store, banned_token_store.clone());
-    
+        let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default())); // New!
+        let app_state = AppState::new(
+            user_store,
+            banned_token_store.clone(),
+            two_fa_code_store.clone(),
+        );
+
         let app = Application::build(app_state, test::APP_ADDRESS)
             .await
             .expect("Failed to build app");
@@ -31,7 +38,7 @@ impl TestApp {
         let address = format!("http://{}", app.address.clone());
 
         // Run the auth service in a separate async task
-        // to avoid blocking the main test thread. 
+        // to avoid blocking the main test thread.
         #[allow(clippy::let_underscore_future)]
         let _ = tokio::spawn(app.run());
 
@@ -41,12 +48,13 @@ impl TestApp {
             .build()
             .unwrap();
 
-        Self {
-            address,
-            cookie_jar,
-            banned_token_store,
-            http_client
-        }
+            Self {
+                address,
+                cookie_jar,
+                banned_token_store,
+                two_fa_code_store,
+                http_client,
+            }
     }
 
     pub async fn get_root(&self) -> reqwest::Response {
@@ -68,7 +76,7 @@ impl TestApp {
             .await
             .expect("Failed to execute request.")
     }
-    
+
     pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize,
@@ -81,7 +89,7 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn post_verify_2fa(&self) -> reqwest::Response{
+    pub async fn post_verify_2fa(&self) -> reqwest::Response {
         self.http_client
             .post(&format!("{}/verify-2fa", &self.address))
             .send()
@@ -89,7 +97,7 @@ impl TestApp {
             .expect("Failed to execute request")
     }
 
-    pub async fn post_logout(&self) -> reqwest::Response{
+    pub async fn post_logout(&self) -> reqwest::Response {
         self.http_client
             .post(&format!("{}/logout", &self.address))
             .send()

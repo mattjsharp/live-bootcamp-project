@@ -6,7 +6,7 @@ use crate::domain::{Email, Password, User, UserStore, UserStoreError};
 // Derive the `Default` trait for `HashmapUserStore`.
 #[derive(Default)]
 pub struct HashmapUserStore {
-    pub users: HashMap<Email, User>
+    pub users: HashMap<Email, User>,
 }
 
 #[async_trait::async_trait]
@@ -15,7 +15,7 @@ impl UserStore for HashmapUserStore {
     // otherwise insert the user into the hashmap and return `Ok(())`.
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         if self.users.contains_key(&user.email) {
-            return Err(UserStoreError::UserAlreadyExists)
+            return Err(UserStoreError::UserAlreadyExists);
         }
         self.users.insert(user.email.clone(), user);
         Ok(())
@@ -27,7 +27,11 @@ impl UserStore for HashmapUserStore {
     // Return `UserStoreError::UserNotFound` if the user can not be found.
     async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
         if let Some(user) = self.users.get(email) {
-            return Ok(User::new(user.email.clone(), user.password.clone(), user.requires_2fa))
+            return Ok(User::new(
+                user.email.clone(),
+                user.password.clone(),
+                user.requires_2fa,
+            ));
         }
         Err(UserStoreError::UserNotFound)
     }
@@ -38,12 +42,16 @@ impl UserStore for HashmapUserStore {
     // unit type `()` if the email/password passed in match an existing user, or a `UserStoreError`.
     // Return `UserStoreError::UserNotFound` if the user can not be found.
     // Return `UserStoreError::InvalidCredentials` if the password is incorrect.
-    async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError> {
+    async fn validate_user(
+        &self,
+        email: &Email,
+        password: &Password,
+    ) -> Result<(), UserStoreError> {
         if let Some(user) = self.users.get(email) {
             if user.password == *password {
-                return Ok(())
+                return Ok(());
             }
-            return Err(UserStoreError::InvalidCredentials)
+            return Err(UserStoreError::InvalidCredentials);
         }
         Err(UserStoreError::UserNotFound)
     }
@@ -52,14 +60,14 @@ impl UserStore for HashmapUserStore {
 impl HashmapUserStore {
     pub fn new() -> Self {
         Self {
-            users: HashMap::new()
+            users: HashMap::new(),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    
+
     use fake::faker::internet::en::{Password as FakerPassword, SafeEmail};
     use fake::Fake;
 
@@ -72,26 +80,35 @@ mod tests {
         let new_password: String = FakerPassword(8..16).fake();
         let password = Password::parse(&new_password).unwrap();
 
-        let mut user_store = HashmapUserStore{users: HashMap::new()};
+        let mut user_store = HashmapUserStore {
+            users: HashMap::new(),
+        };
 
         let user = User::new(email, password, true);
 
-        assert_ne!(user_store.add_user(user).await, Err(UserStoreError::UserAlreadyExists));
+        assert_ne!(
+            user_store.add_user(user).await,
+            Err(UserStoreError::UserAlreadyExists)
+        );
     }
 
     #[tokio::test]
     async fn test_get_user() {
-
         let email = Email::parse(&SafeEmail().fake::<String>()).unwrap();
 
         let new_password: String = FakerPassword(8..16).fake();
         let password = Password::parse(&new_password).unwrap();
 
-        let mut user_store = HashmapUserStore{users: HashMap::new()};
+        let mut user_store = HashmapUserStore {
+            users: HashMap::new(),
+        };
 
         let user = User::new(email.clone(), password, true);
 
-        user_store.add_user(user).await.expect("Failed to add account");
+        user_store
+            .add_user(user)
+            .await
+            .expect("Failed to add account");
 
         let user = user_store.get_user(&email).await;
         assert_eq!(user.unwrap().email, email.clone());
@@ -105,7 +122,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_user() {
-
         let invalid_password = "not_the_password";
 
         let email = Email::parse(&SafeEmail().fake::<String>()).unwrap();
@@ -113,18 +129,30 @@ mod tests {
         let new_password: String = FakerPassword(8..16).fake();
         let password = Password::parse(&new_password).unwrap();
 
-        let mut user_store = HashmapUserStore{users: HashMap::new()};
+        let mut user_store = HashmapUserStore {
+            users: HashMap::new(),
+        };
 
         let user = User::new(email.clone(), password.clone(), true);
 
-        user_store.add_user(user).await.expect("Failed to add account");
-        
-            if let Err(_) = user_store.validate_user(&email, &Password::parse(invalid_password).unwrap()).await {
-                assert!(true, "validate_user passes");
-            } else {
-                assert!(false,  "validate_user fails");
-            }
+        user_store
+            .add_user(user)
+            .await
+            .expect("Failed to add account");
 
-        assert_eq!(user_store.validate_user(&email, &password).await.unwrap(), (), "validate_user fails");
+        if let Err(_) = user_store
+            .validate_user(&email, &Password::parse(invalid_password).unwrap())
+            .await
+        {
+            assert!(true, "validate_user passes");
+        } else {
+            assert!(false, "validate_user fails");
+        }
+
+        assert_eq!(
+            user_store.validate_user(&email, &password).await.unwrap(),
+            (),
+            "validate_user fails"
+        );
     }
 }

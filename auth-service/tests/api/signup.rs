@@ -151,14 +151,18 @@ async fn should_return_409_if_email_already_exists() {
     );
 }
 
-
 #[tokio::test]
 async fn should_return_201_if_valid_input() {
     let app = TestApp::new().await;
 
     let response = app.post_signup(&serde_json::json!({"email": "joebiden@whitehouse.gov", "password": "password123", "requires2FA": true})).await;
 
-    assert_eq!(response.status().as_u16(), 201, "Returned Status: {:?}", response.status().as_u16());
+    assert_eq!(
+        response.status().as_u16(),
+        201,
+        "Returned Status: {:?}",
+        response.status().as_u16()
+    );
 
     let expected_response = SignupResponse {
         message: "User created successfully!".to_owned(),

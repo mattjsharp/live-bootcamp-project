@@ -18,10 +18,10 @@ async fn should_return_400_if_jwt_cookie_missing() {
 
     assert_eq!(
         response
-        .json::<ErrorResponse>()
-        .await
-        .expect("Could not deserialize response body to ErrorResponse")
-        .error,
+            .json::<ErrorResponse>()
+            .await
+            .expect("Could not deserialize response body to ErrorResponse")
+            .error,
         "Missing Token".to_owned()
     );
 }
@@ -51,10 +51,10 @@ async fn should_return_401_if_invalid_token() {
 
     assert_eq!(
         response
-        .json::<ErrorResponse>()
-        .await
-        .expect("Could not deserialize response body to ErrorResponse")
-        .error,
+            .json::<ErrorResponse>()
+            .await
+            .expect("Could not deserialize response body to ErrorResponse")
+            .error,
         "Invalid Token".to_owned()
     );
 }
@@ -65,18 +65,22 @@ async fn should_return_200_if_valid_jwt_cookie() {
 
     let email = get_random_email();
 
-    let signup_response = app.post_signup(&serde_json::json!({
-        "email": email,
-        "password": "password123",
-        "requires2FA": false
-    })).await;
+    let signup_response = app
+        .post_signup(&serde_json::json!({
+            "email": email,
+            "password": "password123",
+            "requires2FA": false
+        }))
+        .await;
 
     assert_eq!(signup_response.status().as_u16(), 201, "Failed to signup");
 
-    let login_response = app.post_login(&serde_json::json!({
-        "email": email,
-        "password": "password123",
-    })).await;
+    let login_response = app
+        .post_login(&serde_json::json!({
+            "email": email,
+            "password": "password123",
+        }))
+        .await;
 
     assert_eq!(login_response.status().as_u16(), 200, "Failed to login");
 
@@ -113,19 +117,23 @@ async fn should_return_400_if_logout_called_twice_in_a_row() {
 
     let email = get_random_email();
 
-    let signup_response = app.post_signup(&serde_json::json!({
-        "email": email,
-        "password": "password123",
-        "requires2FA": false
-    })).await;
+    let signup_response = app
+        .post_signup(&serde_json::json!({
+            "email": email,
+            "password": "password123",
+            "requires2FA": false
+        }))
+        .await;
 
     // Signing up a user
     assert_eq!(signup_response.status().as_u16(), 201, "Failed to signup");
 
-    let login_response = app.post_login(&serde_json::json!({
-        "email": email,
-        "password": "password123",
-    })).await;
+    let login_response = app
+        .post_login(&serde_json::json!({
+            "email": email,
+            "password": "password123",
+        }))
+        .await;
 
     // logging in with new user
     assert_eq!(login_response.status().as_u16(), 200, "Failed to login");
@@ -162,5 +170,4 @@ async fn should_return_400_if_logout_called_twice_in_a_row() {
             .error,
         "Missing Token".to_owned()
     );
-
 }

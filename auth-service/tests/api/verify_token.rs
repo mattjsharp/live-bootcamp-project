@@ -6,7 +6,9 @@ use crate::helpers::{get_random_email, TestApp};
 async fn should_return_422_if_malformed_input() {
     let app = TestApp::new().await;
 
-    let response = app.post_verify_token(&serde_json::json!({"tkn": "ABCD.1234.abcd"})).await;
+    let response = app
+        .post_verify_token(&serde_json::json!({"tkn": "ABCD.1234.abcd"}))
+        .await;
 
     assert_eq!(response.status().as_u16(), 422);
 }
