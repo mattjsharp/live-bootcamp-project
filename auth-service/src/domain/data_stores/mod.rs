@@ -78,7 +78,7 @@ impl AsRef<str> for LoginAttemptId {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TwoFACode(String);
+pub struct TwoFACode(pub String);
 
 impl TwoFACode {
     pub fn parse(code: String) -> Result<Self, String> {
@@ -92,7 +92,11 @@ impl TwoFACode {
 
 impl Default for TwoFACode {
     fn default() -> Self {
-        Self(format!("{}", rand::thread_rng().gen_range(0..1000000)))
+        let mut code = String::new();
+        for _ in 0..6 {
+            code.push_str(&format!("{}", rand::thread_rng().gen_range(0..10)));
+        }
+        Self(code)
     }
 }
 

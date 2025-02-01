@@ -34,7 +34,7 @@ pub async fn login(
     };
 
     if user.password != password {
-        return (jar, Err(AuthAPIError::IncorrectCredentails));
+        return (jar, Err(AuthAPIError::IncorrectCredentials));
     }
 
     match user.requires_2fa {
