@@ -1,18 +1,15 @@
+version: "3.9"
 services:
   app-service:
     image: mattjsharp/app-service
     restart: "always"
     environment:
       AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use service name for communication
-    # expose:
-    #   - "8000"
     ports:
       - "8000:8000"
     depends_on:
       auth-service:
         condition: service_started
-    # networks:
-    #   - app-network
 
   auth-service:
     image: mattjsharp/auth-service
@@ -20,10 +17,6 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432"
-    # expose:
-    #   - "3000"
-    # networks:
-    #   - app-network
     ports:
       - "3000:3000"
     depends_on:
@@ -40,37 +33,12 @@ services:
     volumes:
       - db:/var/lib/postgresql/data
 
-  # reverse-proxy:
-  #   image: nginx:mainline-alpine
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
-  #     - ./certs:/etc/letsencrypt
-  #     - ./certs-data:/var/lib/letsencrypt
-  #     - /tmp/acme-challenge:/var/www/html  # Temporary directory for Let's Encrypt challenges
-  #   depends_on:
-  #     - app-service
-  #   networks:
-  #     - app-network
-
-  # certbot:
-  #   image: certbot/certbot
-  #   volumes:
-  #     - ./certs:/etc/letsencrypt
-  #     - ./certs-data:/var/lib/letsencrypt
-  #     - /tmp/acme-challenge:/var/www/html  # Shared directory for challenges
-  #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 6h & wait $!; certbot renew; done;'"
-  #   networks:
-  #     - app-network
-
-# networks:
-#   app-network:
-#     driver: bridge
+  redis:
+    image: redis:7.0-alpine
+    restart: always
+    ports:
+      - "6379:6379"
 
 volumes:
   db:
     driver: local
-
-#DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432"

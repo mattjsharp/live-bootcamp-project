@@ -2,10 +2,10 @@ use dotenvy::dotenv;
 use lazy_static::lazy_static;
 use std::env as std_env;
 
-// Define a lazily evaluated static. lazy_static is needed because std_env::var is not a const function.
 lazy_static! {
     pub static ref JWT_SECRET: String = set_token();
     pub static ref DATABASE_URL: String = set_database_url();
+    pub static ref REDIS_HOST_NAME: String = set_redis_host();
 }
 
 fn set_token() -> String {
@@ -26,9 +26,15 @@ fn set_database_url() -> String {
     url
 }
 
+fn set_redis_host() -> String {
+    dotenv().ok();
+    std_env::var(env::REDIS_HOST_NAME_ENV_VAR).unwrap_or(DEFAULT_REDIS_HOSTNAME.to_owned())
+}
+
 pub mod env {
     pub const JWT_SECRET_ENV_VAR: &str = "JWT_SECRET";
     pub const DATABASE_URL_ENV_VAR: &str = "DATABASE_URL";
+    pub const REDIS_HOST_NAME_ENV_VAR: &str = "REDIS_HOST_NAME"; 
 }
 
 pub mod prod {
@@ -40,3 +46,4 @@ pub mod test {
 }
 
 pub const JWT_COOKIE_NAME: &str = "jwt";
+pub const DEFAULT_REDIS_HOSTNAME: &str = "127.0.0.1";
