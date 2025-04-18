@@ -34,7 +34,7 @@ fn set_redis_host() -> String {
 pub mod env {
     pub const JWT_SECRET_ENV_VAR: &str = "JWT_SECRET";
     pub const DATABASE_URL_ENV_VAR: &str = "DATABASE_URL";
-    pub const REDIS_HOST_NAME_ENV_VAR: &str = "REDIS_HOST_NAME"; 
+    pub const REDIS_HOST_NAME_ENV_VAR: &str = "REDIS_HOST_NAME";
 }
 
 pub mod prod {

@@ -37,7 +37,7 @@ impl Application {
             .allow_methods([Method::GET, Method::POST])
             .allow_credentials(true)
             .allow_origin(allowed_origins);
-        
+
         let router = Router::new()
             .nest_service("/", ServeDir::new("assets"))
             .route("/signup", post(signup))
@@ -75,10 +75,10 @@ impl IntoResponse for AuthAPIError {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
             AuthAPIError::IncorrectCredentials => {
-                (StatusCode::UNAUTHORIZED, "Passowrd is incorrect")
+                (StatusCode::UNAUTHORIZED, "Incorrect credentials")
             }
-            AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing Token"),
-            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid Token"),
+            AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing auth token"),
+            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid auth token"),
         };
         let body = Json(ErrorResponse {
             error: error_message.to_string(),

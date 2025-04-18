@@ -53,7 +53,6 @@ impl BannedTokenStore for RedisBannedTokenStore {
     }
 }
 
-
 const BANNED_TOKEN_KEY_PREFIX: &str = "banned_token:";
 
 fn get_key(token: &str) -> String {

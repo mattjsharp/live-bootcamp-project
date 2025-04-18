@@ -1,11 +1,11 @@
-use axum::{extract::State, response::IntoResponse, Json};
-use axum_extra::extract::CookieJar;
-use serde::Deserialize;
 use crate::{
     app_state::AppState,
     domain::{AuthAPIError, Email, LoginAttemptId, TwoFACode},
     utils::auth::generate_auth_cookie,
 };
+use axum::{extract::State, response::IntoResponse, Json};
+use axum_extra::extract::CookieJar;
+use serde::Deserialize;
 pub async fn verify_2fa(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -23,7 +23,7 @@ pub async fn verify_2fa(
         Ok(two_fa_code) => two_fa_code,
         Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
     };
-    
+
     let mut two_fa_code_store = state.two_fa_code_store.write().await;
     let code_tuple = match two_fa_code_store.get_code(&email).await {
         Ok(code_tuple) => code_tuple,

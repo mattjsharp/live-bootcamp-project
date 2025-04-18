@@ -1,12 +1,12 @@
 pub mod data_stores;
+pub mod email_client;
 pub mod error;
 pub mod user;
-pub mod email_client;
 
 pub use data_stores::*;
+pub use email_client::*;
 pub use error::*;
 pub use user::*;
-pub use email_client::*;
 
 use core::convert::AsRef;
 

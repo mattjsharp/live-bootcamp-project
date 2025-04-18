@@ -32,7 +32,7 @@ pub enum BannedTokenStoreError {
 
 // This trait represents the interface all concrete 2FA code stores should implement
 #[async_trait::async_trait]
-pub trait TwoFACodeStore: Send + Sync  {
+pub trait TwoFACodeStore: Send + Sync {
     async fn add_code(
         &mut self,
         email: Email,
@@ -57,11 +57,11 @@ pub struct LoginAttemptId(pub String);
 
 impl LoginAttemptId {
     pub fn parse(id: String) -> Result<Self, String> {
-       let result = Uuid::parse_str(&id);
-       match result {
+        let result = Uuid::parse_str(&id);
+        match result {
             Ok(_) => Ok(LoginAttemptId(id)),
-            Err(_) => Err("Not a valid uuid".to_owned())
-       }
+            Err(_) => Err("Not a valid uuid".to_owned()),
+        }
     }
 }
 

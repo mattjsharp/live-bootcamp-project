@@ -25,6 +25,9 @@ impl PostgresUserStore {
 #[async_trait::async_trait]
 impl UserStore for PostgresUserStore {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
+        let password_hash = compute_password_hash(user.password.as_ref().to_owned())
+            .await
+            .map_err(|_| UserStoreError::UnexpectedError)?;
 
         sqlx::query!(
             r#"
@@ -32,7 +35,7 @@ impl UserStore for PostgresUserStore {
             VALUES ($1, $2, $3)
             "#,
             user.email.as_ref(),
-            user.password.as_ref(),
+            &password_hash,
             user.requires_2fa
         )
         .execute(&self.pool)
@@ -41,8 +44,8 @@ impl UserStore for PostgresUserStore {
 
         Ok(())
     }
+
     async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
-       
         sqlx::query!(
             r#"
             SELECT email, password_hash, requires_2fa
@@ -56,8 +59,8 @@ impl UserStore for PostgresUserStore {
         .map_err(|_| UserStoreError::UnexpectedError)?
         .map(|row| {
             Ok(User {
-                email: Email::parse(row.email.as_ref()).map_err(|_| UserStoreError::UnexpectedError)?,
-                password: Password::parse(row.password_hash.as_ref())
+                email: Email::parse(&row.email).map_err(|_| UserStoreError::UnexpectedError)?,
+                password: Password::parse(&row.password_hash)
                     .map_err(|_| UserStoreError::UnexpectedError)?,
                 requires_2fa: row.requires_2fa,
             })
@@ -71,10 +74,13 @@ impl UserStore for PostgresUserStore {
         password: &Password,
     ) -> Result<(), UserStoreError> {
         let user = self.get_user(email).await?;
-        if user.password == *password {
-            return Ok(());
-        }
-        Err(UserStoreError::InvalidCredentials)
+
+        verify_password_hash(
+            user.password.as_ref().to_owned(),
+            password.as_ref().to_owned(),
+        )
+        .await
+        .map_err(|_| UserStoreError::InvalidCredentials)
     }
 }
 

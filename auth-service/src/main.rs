@@ -23,7 +23,12 @@ async fn main() {
     )));
     let two_fa_code_store = Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_connection)));
     let email_client = Arc::new(RwLock::new(MockEmailClient));
-    let app_state = AppState::new(user_store, banned_token_store, two_fa_code_store, email_client);
+    let app_state = AppState::new(
+        user_store,
+        banned_token_store,
+        two_fa_code_store,
+        email_client,
+    );
     let app = Application::build(app_state, prod::APP_ADDRESS)
         .await
         .expect("Failed to build app");
